@@ -145,6 +145,7 @@ body {
   margin-left: 230px;
   padding: 36px 40px;
   min-height: 100vh;
+  min-width: 0;
 }
 
 /* ============================================
@@ -233,6 +234,7 @@ body {
   border-radius: var(--radius);
   padding: 24px;
   transition: border-color var(--transition);
+  min-width: 0;
 }
 
 .card:hover {
@@ -399,8 +401,8 @@ body {
    ============================================ */
 .habit-grid-wrapper {
   overflow-x: auto;
-  margin: -4px;
-  padding: 4px;
+  margin: 0;
+  padding: 0 0 8px 0;
 }
 
 .habit-grid {
@@ -427,6 +429,7 @@ body {
   left: 0;
   background: var(--surface);
   z-index: 10;
+  box-shadow: 2px 0 6px -2px rgba(0,0,0,0.5);
 }
 
 .day-col { width: 22px; }
@@ -439,6 +442,7 @@ body {
   left: 0;
   background: var(--surface);
   z-index: 10;
+  box-shadow: 2px 0 6px -2px rgba(0,0,0,0.5);
 }
 
 .habit-label {
@@ -483,7 +487,22 @@ tr:hover .remove-habit-btn { opacity: 1; }
   box-shadow: 0 0 6px rgba(226, 241, 99, 0.35);
 }
 
-.stat-cell { text-align: center; }
+.stat-cell { 
+  text-align: center;
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  z-index: 10;
+  box-shadow: -2px 0 6px -2px rgba(0,0,0,0.5);
+}
+
+.stat-col {
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  z-index: 10;
+  box-shadow: -2px 0 6px -2px rgba(0,0,0,0.5);
+}
 
 .completion-badge {
   font-size: 0.68rem;
@@ -787,8 +806,8 @@ tr:hover .remove-habit-btn { opacity: 1; }
 
   /* --- Habit / Sleep Grid: touch-friendly --- */
   .habit-grid-wrapper {
-    margin: 0 -16px;
-    padding: 0 16px;
+    margin: 0;
+    padding: 0 0 10px 0;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -799,13 +818,6 @@ tr:hover .remove-habit-btn { opacity: 1; }
 
   .habit-name-col { 
     min-width: 110px; 
-    left: 16px;
-    box-shadow: 4px 0 8px -4px rgba(0,0,0,0.5);
-  }
-  
-  .habit-name-cell {
-    left: 16px;
-    box-shadow: 4px 0 8px -4px rgba(0,0,0,0.5);
   }
 
   .habit-cell {
@@ -905,17 +917,13 @@ tr:hover .remove-habit-btn { opacity: 1; }
   .card { padding: 14px 12px; }
 
   .habit-grid-wrapper {
-    margin: 0 -12px;
-    padding: 0 12px;
+    margin: 0;
+    padding: 0 0 10px 0;
   }
 
   .habit-grid { min-width: 620px; }
   .habit-name-col { 
     min-width: 90px;
-    left: 12px;
-  }
-  .habit-name-cell {
-    left: 12px;
   }
   .habit-cell { width: 18px; height: 18px; }
 }
