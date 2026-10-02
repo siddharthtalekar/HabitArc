@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Moon, TrendingUp, Clock, BarChart3 } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
+import { Moon, TrendingUp, Clock, BarChart3, Lock } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -19,8 +19,12 @@ const TIP = {
 
 export default function SleepTracker() {
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
+  const todayDate = now.getDate();
+  const todayMonth = now.getMonth();
+  const todayYear = now.getFullYear();
+
+  const [month, setMonth] = useState(todayMonth);
+  const [year, setYear] = useState(todayYear);
   const monthKey = getMonthKey(year, month);
   const daysInMonth = getDaysInMonth(year, month);
 
@@ -29,10 +33,32 @@ export default function SleepTracker() {
     getDefaultMonthData(),
   );
 
+  const [tooltip, setTooltip] = useState(null);
+  const tooltipTimer = useRef(null);
+
   const sleepData = data.sleep;
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const setSleep = (day, hours) => {
+  const isCurrentMonth = month === todayMonth && year === todayYear;
+  const isPastMonth = year < todayYear || (year === todayYear && month < todayMonth);
+
+  const getDayState = (d) => {
+    if (!isCurrentMonth) return isPastMonth ? 'past' : 'future';
+    if (d === todayDate) return 'today';
+    return d < todayDate ? 'past' : 'future';
+  };
+
+  const showTooltip = (e, text) => {
+    clearTimeout(tooltipTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({ x: rect.left + rect.width / 2, y: rect.top + window.scrollY - 10, text });
+    tooltipTimer.current = setTimeout(() => setTooltip(null), 1600);
+  };
+
+  const setSleep = (day, hours, e) => {
+    const state = getDayState(day);
+    if (state === 'past') { showTooltip(e, '🔒 Past day — read only'); return; }
+    if (state === 'future') { showTooltip(e, '⏳ Future day — not yet!'); return; }
     setData((prev) => {
       const s = { ...prev.sleep };
       if (s[day] === hours) delete s[day]; // toggle off
@@ -75,6 +101,13 @@ export default function SleepTracker() {
 
   return (
     <div className="page">
+      {/* Floating cell tooltip */}
+      {tooltip && (
+        <div className="cell-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          {tooltip.text}
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">Sleep Tracker</h1>
@@ -99,6 +132,22 @@ export default function SleepTracker() {
         ))}
       </div>
 
+      {/* Legend */}
+      <div className="grid-legend">
+        <span className="legend-item">
+          <span className="legend-dot legend-today" />Today (editable)
+        </span>
+        <span className="legend-item">
+          <span className="legend-dot legend-done" />Logged
+        </span>
+        <span className="legend-item">
+          <Lock size={11} />&nbsp;Past (locked)
+        </span>
+        <span className="legend-item">
+          <Clock size={11} />&nbsp;Future (locked)
+        </span>
+      </div>
+
       {/* Sleep grid */}
       <div className="card">
         <h3 className="card-title"><Moon size={20} />Sleep Log</h3>
@@ -107,9 +156,16 @@ export default function SleepTracker() {
             <thead>
               <tr>
                 <th className="habit-name-col">Hours</th>
-                {days.map((d) => (
-                  <th key={d} className="day-col">{d}</th>
-                ))}
+                {days.map((d) => {
+                  const state = getDayState(d);
+                  return (
+                    <th key={d} className={`day-col day-col--${state}`}>
+                      {state === 'past' && <Lock size={7} className="day-icon" />}
+                      {state === 'future' && <Clock size={7} className="day-icon" />}
+                      <span>{d}</span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -122,13 +178,20 @@ export default function SleepTracker() {
                         {hour === '<5' ? '< 5' : hour} hrs
                       </span>
                     </td>
-                    {days.map((d) => (
-                      <td
-                        key={d}
-                        className={`habit-cell ${sleepData[d] === val ? 'active' : ''}`}
-                        onClick={() => setSleep(d, val)}
-                      />
-                    ))}
+                    {days.map((d) => {
+                      const state = getDayState(d);
+                      return (
+                        <td
+                          key={d}
+                          className={[
+                            'habit-cell',
+                            sleepData[d] === val ? 'active' : '',
+                            `habit-cell--${state}`,
+                          ].join(' ')}
+                          onClick={(e) => setSleep(d, val, e)}
+                        />
+                      );
+                    })}
                   </tr>
                 );
               })}
