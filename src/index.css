@@ -403,6 +403,7 @@ body {
   overflow-x: auto;
   margin: 0;
   padding: 0 0 8px 0;
+  scroll-behavior: smooth;
 }
 
 .habit-grid {
@@ -432,8 +433,55 @@ body {
   box-shadow: 2px 0 6px -2px rgba(0,0,0,0.5);
 }
 
+/* ---------- day column states ---------- */
 .day-col { width: 22px; }
 .stat-col { width: 52px; }
+
+/* Today column header — zoomed & highlighted */
+.day-col--today {
+  width: 34px !important;
+  color: var(--accent) !important;
+  font-weight: 800 !important;
+  font-size: 0.82rem !important;
+  position: relative;
+}
+
+.day-col--today::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.day-col--past {
+  color: #444 !important;
+  opacity: 0.7;
+}
+
+.day-col--future {
+  color: #383838 !important;
+  opacity: 0.55;
+}
+
+/* Tiny icon inside the day header */
+.day-icon {
+  display: block;
+  margin: 0 auto 1px;
+  opacity: 0.5;
+}
+
+.stat-col {
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  z-index: 10;
+  box-shadow: -2px 0 6px -2px rgba(0,0,0,0.5);
+}
 
 .habit-name-cell {
   padding: 2px 8px;
@@ -467,6 +515,7 @@ body {
 tr:hover .remove-habit-btn { opacity: 1; }
 .remove-habit-btn:hover { color: #ef4444; }
 
+/* ---------- habit cells ---------- */
 .habit-cell {
   width: 22px;
   height: 22px;
@@ -487,16 +536,57 @@ tr:hover .remove-habit-btn { opacity: 1; }
   box-shadow: 0 0 6px rgba(226, 241, 99, 0.35);
 }
 
-.stat-cell { 
-  text-align: center;
-  position: sticky;
-  right: 0;
-  background: var(--surface);
-  z-index: 10;
-  box-shadow: -2px 0 6px -2px rgba(0,0,0,0.5);
+/* Today's column cells — bigger & glowing border */
+.habit-cell--today {
+  width: 30px !important;
+  height: 26px !important;
+  border: 1.5px solid rgba(226, 241, 99, 0.3) !important;
+  border-radius: 6px !important;
 }
 
-.stat-col {
+.habit-cell--today:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 10px rgba(226, 241, 99, 0.25);
+  transform: scale(1.12);
+}
+
+.habit-cell--today.active {
+  box-shadow: 0 0 12px rgba(226, 241, 99, 0.55) !important;
+}
+
+/* Past cells — dimmed, locked cursor */
+.habit-cell--past {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+  background: #1a1a1a !important;
+}
+
+.habit-cell--past:hover {
+  transform: none !important;
+  border-color: #333 !important;
+  opacity: 0.45;
+}
+
+.habit-cell--past.active {
+  background: rgba(226, 241, 99, 0.4) !important;
+  box-shadow: none !important;
+}
+
+/* Future cells — very dim, locked cursor */
+.habit-cell--future {
+  opacity: 0.18;
+  cursor: not-allowed !important;
+  background: #161616 !important;
+}
+
+.habit-cell--future:hover {
+  transform: none !important;
+  border-color: transparent !important;
+  opacity: 0.25;
+}
+
+.stat-cell { 
+  text-align: center;
   position: sticky;
   right: 0;
   background: var(--surface);
@@ -521,6 +611,67 @@ tr:hover .remove-habit-btn { opacity: 1; }
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
+}
+
+/* ---------- grid legend ---------- */
+.grid-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-today {
+  background: transparent;
+  border: 1.5px solid rgba(226, 241, 99, 0.6);
+}
+
+.legend-done {
+  background: var(--accent);
+}
+
+/* ---------- floating cell tooltip ---------- */
+.cell-tooltip {
+  position: fixed;
+  transform: translateX(-50%) translateY(-100%);
+  background: #1f1f1f;
+  border: 1px solid #333;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  animation: tooltipPop 0.15s ease;
+}
+
+@keyframes tooltipPop {
+  from { opacity: 0; transform: translateX(-50%) translateY(-90%); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(-100%); }
 }
 
 /* ============================================
@@ -826,11 +977,21 @@ tr:hover .remove-habit-btn { opacity: 1; }
     border-radius: 3px;
   }
 
+  /* Today cell stays prominent on mobile */
+  .habit-cell--today {
+    width: 28px !important;
+    height: 24px !important;
+  }
+
   .habit-cell:hover { transform: none; } /* no hover on touch */
 
   .habit-cell:active {
     transform: scale(0.9);
   }
+
+  /* locked cells never scale on touch */
+  .habit-cell--past:active,
+  .habit-cell--future:active { transform: none; }
 
   .habit-label { font-size: 0.72rem; }
 
