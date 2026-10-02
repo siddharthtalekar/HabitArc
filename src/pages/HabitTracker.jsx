@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Plus, X, TrendingUp } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
+import { Plus, X, TrendingUp, Lock, Clock } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -11,8 +11,12 @@ import {
 
 export default function HabitTracker() {
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
+  const todayDate = now.getDate();
+  const todayMonth = now.getMonth();
+  const todayYear = now.getFullYear();
+
+  const [month, setMonth] = useState(todayMonth);
+  const [year, setYear] = useState(todayYear);
   const monthKey = getMonthKey(year, month);
   const daysInMonth = getDaysInMonth(year, month);
 
@@ -21,13 +25,36 @@ export default function HabitTracker() {
     getDefaultMonthData(),
   );
   const [newHabit, setNewHabit] = useState('');
+  const [tooltip, setTooltip] = useState(null);
+  const tooltipTimer = useRef(null);
 
   const habits = data.habits.list;
   const habitData = data.habits.data;
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  /* Toggle a single cell */
-  const toggle = (habit, day) => {
+  const isCurrentMonth = month === todayMonth && year === todayYear;
+  const isPastMonth = year < todayYear || (year === todayYear && month < todayMonth);
+
+  /* Day state: 'today' | 'past' | 'future' */
+  const getDayState = (d) => {
+    if (!isCurrentMonth) return isPastMonth ? 'past' : 'future';
+    if (d === todayDate) return 'today';
+    return d < todayDate ? 'past' : 'future';
+  };
+
+  /* Show floating tooltip near clicked cell */
+  const showTooltip = (e, text) => {
+    clearTimeout(tooltipTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({ x: rect.left + rect.width / 2, y: rect.top + window.scrollY - 10, text });
+    tooltipTimer.current = setTimeout(() => setTooltip(null), 1600);
+  };
+
+  /* Toggle — only today is editable */
+  const toggle = (habit, day, e) => {
+    const state = getDayState(day);
+    if (state === 'past') { showTooltip(e, '🔒 Past day — read only'); return; }
+    if (state === 'future') { showTooltip(e, '⏳ Future day — not yet!'); return; }
     setData((prev) => {
       const hd = { ...prev.habits.data };
       const dayMap = { ...(hd[habit] || {}) };
@@ -64,27 +91,47 @@ export default function HabitTracker() {
     return Math.round((done / daysInMonth) * 100);
   };
 
-  /* Bar chart — habits completed per day */
+  /* Bar chart */
   const barData = useMemo(
     () =>
       days.map((d) => ({
         day: d,
-        count: habits.reduce(
-          (s, h) => s + (habitData[h]?.[d] ? 1 : 0),
-          0,
-        ),
+        count: habits.reduce((s, h) => s + (habitData[h]?.[d] ? 1 : 0), 0),
       })),
     [habitData, habits, days],
   );
 
   return (
     <div className="page">
+      {/* Floating cell tooltip */}
+      {tooltip && (
+        <div className="cell-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          {tooltip.text}
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">Daily Habit Tracker</h1>
           <p className="page-subtitle">Build consistency, one day at a time</p>
         </div>
         <MonthSelector month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
+      </div>
+
+      {/* Legend */}
+      <div className="grid-legend">
+        <span className="legend-item">
+          <span className="legend-dot legend-today" />Today (editable)
+        </span>
+        <span className="legend-item">
+          <span className="legend-dot legend-done" />Completed
+        </span>
+        <span className="legend-item">
+          <Lock size={11} />&nbsp;Past (locked)
+        </span>
+        <span className="legend-item">
+          <Clock size={11} />&nbsp;Future (locked)
+        </span>
       </div>
 
       {/* Grid */}
@@ -94,9 +141,16 @@ export default function HabitTracker() {
             <thead>
               <tr>
                 <th className="habit-name-col">Habit</th>
-                {days.map((d) => (
-                  <th key={d} className="day-col">{d}</th>
-                ))}
+                {days.map((d) => {
+                  const state = getDayState(d);
+                  return (
+                    <th key={d} className={`day-col day-col--${state}`}>
+                      {state === 'past' && <Lock size={7} className="day-icon" />}
+                      {state === 'future' && <Clock size={7} className="day-icon" />}
+                      <span>{d}</span>
+                    </th>
+                  );
+                })}
                 <th className="stat-col">%</th>
               </tr>
             </thead>
@@ -115,13 +169,21 @@ export default function HabitTracker() {
                       </button>
                     )}
                   </td>
-                  {days.map((d) => (
-                    <td
-                      key={d}
-                      className={`habit-cell ${habitData[habit]?.[d] ? 'active' : ''}`}
-                      onClick={() => toggle(habit, d)}
-                    />
-                  ))}
+                  {days.map((d) => {
+                    const state = getDayState(d);
+                    const isActive = habitData[habit]?.[d];
+                    return (
+                      <td
+                        key={d}
+                        className={[
+                          'habit-cell',
+                          isActive ? 'active' : '',
+                          `habit-cell--${state}`,
+                        ].join(' ')}
+                        onClick={(e) => toggle(habit, d, e)}
+                      />
+                    );
+                  })}
                   <td className="stat-cell">
                     <span className="completion-badge">{pct(habit)}%</span>
                   </td>
